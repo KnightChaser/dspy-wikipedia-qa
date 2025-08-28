@@ -2,7 +2,6 @@
 from __future__ import annotations
 import json
 from dataclasses import asdict
-from typing import Optional
 import typer
 import wikipediaapi
 from rich import print
