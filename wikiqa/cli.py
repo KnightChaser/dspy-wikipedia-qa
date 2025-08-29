@@ -452,3 +452,87 @@ def db_stats(
         table.add_row("Sample fields", field_names)
 
     print(table)
+
+
+@db_app.command("titles")
+def db_titles(
+    collection: str = typer.Option(DEFAULT_COLLECTION, help="Collection name"),
+    uri: str = typer.Option(DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"),
+    where: Optional[str] = typer.Option(
+        None,
+        help='Optional scalar filter, e.g., \'lang == "en" and page_title like "Alan%"\'.',
+    ),
+    limit: int = typer.Option(
+        10000,
+        help="Max rows to scan for counting (guard rail for large collections).",
+    ),
+    json_out: bool = typer.Option(False, "--json", help="Emit JSON"),
+) -> None:
+    """
+    List distinct page titles with their chunk counts.
+    Best-effort: tries query(); falls back to a neutral vector search if needed.
+    """
+    client = get_client(uri=uri)
+
+    rows: list[dict[str, Any]] = []
+    field_list = ["page_title"]
+
+    # Try the high-level query API
+    try:
+        rows = (
+            client.query(
+                collection_name=collection,
+                filter=where or "",
+                output_fields=field_list,
+                limit=limit,
+            )
+            or []
+        )
+    except Exception:
+        print(
+            Panel(
+                "[bold yellow]Failed to query(); falling back to search()[/bold yellow]"
+            )
+        )
+        raise typer.Exit(code=1)
+
+    # Aggregate counts by title
+    counts: dict[str, int] = {}
+    for row in rows:
+        title = str(row.get("page_title", "")).strip()
+        if not title:
+            continue
+        counts[title] = counts.get(title, 0) + 1
+
+    # Sort by coutn desc, then title
+    items = sorted(counts.items(), key=lambda x: (-x[1], x[0]))
+
+    if json_out:
+        print(
+            json.dumps(
+                {
+                    "uri": uri,
+                    "collection": collection,
+                    "where": where,
+                    "scanned": len(rows),
+                    "titles": [{"page_title": t, "chunks": c} for t, c in items],
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return
+
+    table = Table(
+        title=f"Page titles in {collection.strip} @ {uri} (scanned={len(rows)})"
+    )
+    table.add_column("#", justify="right", style="bold")
+    table.add_column("Page title")
+    table.add_column("Chunks", justify="right")
+
+    for idx, (title, count) in enumerate(items, start=1):
+        table.add_row(str(idx), title, str(count))
+
+    if not items:
+        table.caption = "No titles found (empty collection or filter too strict)."
+    print(table)
