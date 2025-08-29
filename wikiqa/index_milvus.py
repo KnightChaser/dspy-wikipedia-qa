@@ -10,7 +10,8 @@ from wikiqa.datatypes import Chunk
 # You can change DIM if you switch embedding model.
 DEFAULT_URI = "./milvus.db"  # Milvus Lite (single file)
 DEFAULT_COLLECTION = "wikiqa_chunks"
-METRIC = "COSINE"  # cosine similarity
+DEFAULT_EMBED_DIM = 1536  # 1536 dims for text-embedding-3-small
+DEFAULT_METRIC = "COSINE"  # cosine similarity
 
 
 def get_client(uri: str = DEFAULT_URI) -> MilvusClient:
@@ -36,7 +37,7 @@ def ensure_collection(
     client: MilvusClient,
     *,
     collection_name: str = DEFAULT_COLLECTION,
-    dim: int = 1536,  # 1536 dims for text-embedding-3-small
+    dim: int = DEFAULT_EMBED_DIM,
     overwrite: bool = False,
 ) -> None:
     """
@@ -54,7 +55,7 @@ def ensure_collection(
         primary_field_name="id",
         vector_field_name="embedding",
         id_type="int",
-        metric_type=METRIC,
+        metric_type=DEFAULT_METRIC,
         enable_dynamic=True,  # store extra fields in $meta
         max_length=65535,
     )
