@@ -49,7 +49,7 @@ class SimpleRAG(dspy.Module):
             # Zero-context guard: Reject if no passages are found
             msg = (
                 "I don't have enough indexed context to answer that safely. "
-                'Try indexing relevant pages first (e.g., `index_title "Jupiter"`), '
+                'Try indexing relevant pages first (e.g., `index-title "Jupiter"`), '
                 "then ask again."
             )
             return dspy.Prediction(answer=msg, sources=[])
