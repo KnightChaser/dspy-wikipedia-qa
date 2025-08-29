@@ -16,7 +16,7 @@ class RAGConfig:
     collection: str
     uri: str
     top_k: int = 6
-    openai_chat_model: str = "gpt-3.5-turbo"
+    openai_model: str = "gpt-5-mini"
 
 
 class GenerateAnswer(dspy.Signature):

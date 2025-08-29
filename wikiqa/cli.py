@@ -212,7 +212,7 @@ def ask(
     collection: str = typer.Option(DEFAULT_COLLECTION),
     uri: str = typer.Option(DEFAULT_URI),
     k: int = typer.Option(6, "--k"),
-    model: str = typer.Option("gpt-3.5-turbo"),
+    model: str = typer.Option("gpt-5-mini"),
     embed_model: str = typer.Option("text-embedding-3-small"),
     show_sources: bool = typer.Option(True, "--sources/--no-sources"),
 ) -> None:
@@ -222,7 +222,7 @@ def ask(
 
     ef = get_openai_ef(embed_model)
     retriever = MilvusRetriever(collection_name=collection, uri=uri, ef=ef)
-    lm = dspy.LM(model=model)
+    lm = dspy.LM(model=model, temperature=1.0, max_tokens=20000)
     dspy.settings.configure(lm=lm)
 
     rag = SimpleRAG(retriever, top_k=k)
