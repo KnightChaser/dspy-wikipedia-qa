@@ -215,13 +215,21 @@ def ask(
     model: str = typer.Option("gpt-5-mini"),
     embed_model: str = typer.Option("text-embedding-3-small"),
     show_sources: bool = typer.Option(True, "--sources/--no-sources"),
+    min_score: float = typer.Option(0.60, help="Minimum similarity score for hits"),
+    min_hits: int = typer.Option(2, help="Minimum number of hits to consider valid"),
 ) -> None:
     if not os.environ.get("OPENAI_API_KEY"):
         print(Panel.fit("[bold red]Set OPENAI_API_KEY in your environment.[/bold red]"))
         raise typer.Exit(code=3)
 
     ef = get_openai_ef(embed_model)
-    retriever = MilvusRetriever(collection_name=collection, uri=uri, ef=ef)
+    retriever = MilvusRetriever(
+        client=get_client(uri=uri),
+        collection=collection,
+        ef=ef,
+        min_score=min_score,
+        min_hits=min_hits,
+    )
     lm = dspy.LM(model=model, temperature=1.0, max_tokens=20000)
     dspy.settings.configure(lm=lm)
 

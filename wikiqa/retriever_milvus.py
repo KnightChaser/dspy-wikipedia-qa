@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any, Iterable, Sequence
 import numpy as np
 from pymilvus import MilvusClient
 from pymilvus import model as milvus_model
@@ -28,23 +28,26 @@ class MilvusRetriever:
 
     def __init__(
         self,
-        *,
-        collection_name: str,
-        uri: str,
+        client: MilvusClient,
+        collection: str,
         ef: milvus_model.dense.OpenAIEmbeddingFunction,
-        output_fields: list[str] | None = None,
-    ) -> None:
-        self.client = MilvusClient(uri=uri)
-        self.collection = collection_name
-        self.ef = ef
-        self.output_fields = output_fields or [
+        *,
+        output_fields: Sequence[str] = (
             "text",
+            "url",
             "page_title",
             "section_path",
-            "url",
             "lang",
-            "token_estimate",
-        ]
+        ),
+        min_score: float = 0.60,
+        min_hits: int = 2,
+    ) -> None:
+        self.client = client
+        self.collection = collection
+        self.ef = ef
+        self.output_fields = list(output_fields)
+        self.min_score = float(min_score)
+        self.min_hits = int(min_hits)
 
     def _encode_query(self, query: str) -> list[float]:
         """
@@ -90,7 +93,12 @@ class MilvusRetriever:
                 )
             )
 
-        return out
+        # Apply gating: filter by min_score and ensure at least min_hits
+        strong = [p for p in out if p.score >= self.min_score]
+        if len(strong) < self.min_hits:
+            return []  # Signaling "not enough good hits"
+
+        return strong[:k]
 
     def _hit_to_dict(self, hit: Any) -> dict:
         """

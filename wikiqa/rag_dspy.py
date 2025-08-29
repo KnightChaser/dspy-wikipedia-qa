@@ -45,6 +45,15 @@ class SimpleRAG(dspy.Module):
         Given a question, retrieve relevant passages and generate an answer with citations.
         """
         hits: Sequence[Passage] = self.retriever(question, k=self.top_k)
+        if not hits:
+            # Zero-context guard: Reject if no passages are found
+            msg = (
+                "I don't have enough indexed context to answer that safely. "
+                'Try indexing relevant pages first (e.g., `index_title "Jupiter"`), '
+                "then ask again."
+            )
+            return dspy.Prediction(answer=msg, sources=[])
+
         contexts: list[str] = []
         srcs: list[str] = []
 
