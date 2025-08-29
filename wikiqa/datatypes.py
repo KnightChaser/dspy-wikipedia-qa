@@ -31,3 +31,18 @@ class SearchHit:
     description: str | None
     excerpt: str | None
     thumbnail_url: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class Chunk:
+    """
+    A semantically coherent snippet with provenance.
+    """
+
+    id_int: int
+    page_title: str
+    section_path: str  # e.g., "History > Early life"
+    url: str  # page URL + optional #anchor
+    lang: str
+    text: str
+    token_estimate: str  # rough token count for bookkeeping
