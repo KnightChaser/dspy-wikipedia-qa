@@ -2,10 +2,22 @@
 
 > Minimal DSPy-ready Wikipedia Q&A with Milvus Lite retrieval.
 
+### Screenshots
+<img width="800" height="400" alt="image" src="https://github.com/user-attachments/assets/10fdda02-e0a1-46c6-a1c3-e73023a1dedc" />
+<img width="800" height="600" alt="image" src="https://github.com/user-attachments/assets/dd9c7145-1c0f-4e19-851f-2b9afce631ad" />
+
+It's easy to use: First, get the article from Wikipedia you'd like to search. Second, index the page and embed it into the vector database (Milvus Lite).
+Finally, you ask a question, and the related articles will be fetched from the database, and the LLM will generate the response for you based on the fetched articles.
+<img width="800" height="600" alt="image" src="https://github.com/user-attachments/assets/a3da5f37-b516-45c2-a67b-89c759d59711" />
+
+
 ### Installation
 
 Create a Python virtual environment and install dependencies:
-that are listed in `requirements.txt`.
+Those are listed in `requirements.txt`. And, you need an OpenAI API key to
+utilize embedding models and LLMs. Get your own API key and set it as an
+environment variable: `OPENAI_API_KEY`.
+
 
 ### Example usages
 
