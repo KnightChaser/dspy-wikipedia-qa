@@ -224,15 +224,13 @@ def ask(
         print(Panel.fit("[bold red]Set OPENAI_API_KEY in your environment.[/bold red]"))
         raise typer.Exit(code=3)
 
-    ef = get_openai_ef(embed_model)
     retriever = MilvusRetriever(
         client=get_client(uri=uri),
         collection=collection,
-        ef=ef,
         min_score=min_score,
         min_hits=min_hits,
     )
-    lm = dspy.LM(model=model, temperature=1.0, max_tokens=20000)
+    lm = dspy.LM(model=model, temperature=1.0, max_tokens=4096)
     dspy.settings.configure(lm=lm)
 
     rag = SimpleRAG(retriever, top_k=k)

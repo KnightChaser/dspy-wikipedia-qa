@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable, Sequence
 import numpy as np
 from pymilvus import MilvusClient
-from pymilvus import model as milvus_model
+from wikiqa.index_milvus import get_openai_ef
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,7 +30,6 @@ class MilvusRetriever:
         self,
         client: MilvusClient,
         collection: str,
-        ef: milvus_model.dense.OpenAIEmbeddingFunction,
         *,
         output_fields: Sequence[str] = (
             "text",
@@ -44,7 +43,7 @@ class MilvusRetriever:
     ) -> None:
         self.client = client
         self.collection = collection
-        self.ef = ef
+        self.ef = get_openai_ef()
         self.output_fields = list(output_fields)
         self.min_score = float(min_score)
         self.min_hits = int(min_hits)
