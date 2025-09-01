@@ -2,5 +2,14 @@
   must: ["September 27, 1984", "Belleville", "Ontario", "Canada"]
 - question: How big is Jupiter?
   must:
-  - ["equatorial diameter", "mean radius"]
-  - ["142,984", "69,911"]
+  - ["diameter", "142,984"]
+- question: "Who invented Linux when and why?"
+  must: ["Linus Torvalds", "1991", "Minix", "Unix", "free"]
+- question: "Which awards did Alan Turing get?"
+  must: ["Order of the British Empire"]
+- question: "What is the definition of Large Language Model?"
+  must: ["large language model", "LLM", "artificial intelligence"]
+- question: "What is the origin of the Large Language Model?"
+  must: ["large language model", "foundation", "self-supervised", "text", "GPT", "LLM"]
+- question: "How Large Language Model is trained?"
+  must: ["text", "predict", "pretraining", "prompt engineering", "reinforcement learning"]
