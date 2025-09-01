@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import yaml
 import threading
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,6 +13,7 @@ from typing import Any, Callable
 import typer
 from rich import print
 from rich.panel import Panel
+from rich.table import Table
 
 import dspy
 from wikiqa.index_milvus import (
@@ -207,6 +209,127 @@ def must_include_metric_factory(tolerance_percentage: float) -> Callable:
 
 
 # NOTE:
+# data loading
+
+
+def _load_jsonl(path: Path) -> list[EvalCase]:
+    """
+    Loads a JSONL file of EvalCase items.
+    Each line is a JSON object with fields {question, must}.
+    """
+    raw_lines = path.read_text(encoding="utf-8").splitlines()
+    items: list[EvalCase] = []
+    for line in raw_lines:
+        if not line.strip():
+            continue
+        obj = json.loads(line)
+        items.append(_coerce_eval_case(obj))
+    return items
+
+
+def _load_yaml(path: Path) -> list[EvalCase]:
+    """
+    Loads a YAML file of EvalCase items.
+    Each item is a YAML object with fields {question, must}.
+    """
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    raw_list = data if isinstance(data, list) else data.get("examples", [])
+    if not isinstance(raw_list, list):
+        raise ValueError(
+            "YAML must be a list of {question, must} or {examples: [...]}."
+        )
+    return [_coerce_eval_case(obj) for obj in raw_list]
+
+
+def _load_cases(path: Path, data_format: str) -> list[EvalCase]:
+    """
+    Load EvalCase items from a file, format auto-detected or specified.
+    """
+    fmt = data_format.lower()
+    if fmt == "auto":
+        suffix = path.suffix.lower()
+        if suffix in (".yaml", ".yml"):
+            return _load_yaml(path)
+        return _load_jsonl(path)
+    if fmt == "yaml":
+        return _load_yaml(path)
+    if fmt == "jsonl":
+        return _load_jsonl(path)
+    raise ValueError("--data-format must be one of: auto|yaml|jsonl")
+
+
+# NOTE:
+# Pretty tables
+def _render_summary_table(records: list[dict[str, Any]], truncate: int = 80) -> Table:
+    """
+    Render a rich Table summarizing the evaluation records.
+    """
+    table = Table(title="Evaluation Results")
+    table.add_column("#", justify="right", style="bold")
+    table.add_column("score", justify="right")
+    table.add_column("satisfied/total", justify="right")
+    table.add_column("question")
+    table.add_column("failed_groups")
+
+    for idx, row in enumerate(records, start=1):
+        score = f"{row['score']:.3f}"
+        satisfied = len(row.get("satisfied", []))
+        total = len(row.get("must", []))
+        question = str(row["question"])
+
+        if truncate and len(question) > truncate:
+            question = question[:truncate] + "…"
+
+        # show up to 2 failed groups compactly
+        failed = row.get("failed", [])
+        failed_txt = "; ".join([", ".join(g.get("group", [])) for g in failed[:2]])
+        if truncate and len(failed_txt) > truncate:
+            failed_txt = failed_txt[:truncate] + "…"
+
+        table.add_row(str(idx), score, f"{satisfied}/{total}", question, failed_txt)
+
+    return table
+
+
+def _render_wide_table(records: list[dict[str, Any]], truncate: int = 100) -> Table:
+    """
+    Render a rich Table with detailed evaluation records.
+    """
+    table = Table(title="Evaluation Results (Wide)")
+    table.add_column("#", justify="right", style="bold")
+    table.add_column("score", justify="right")
+    table.add_column("satisfied/total", justify="right")
+    table.add_column("question")
+    table.add_column("satisfied")
+    table.add_column("failed")
+    table.add_column("sources")
+
+    for idx, row in enumerate(records, start=1):
+        score = f"{row['score']:.3f}"
+        satisfied = len(row.get("satisfied", []))
+        total = len(row.get("must", []))
+        question = str(row["question"])
+
+        if truncate and len(question) > truncate:
+            question = question[:truncate] + "…"
+        sat = "; ".join([x.get("matched", "") for x in row.get("satisfied", [])])
+        fail = "; ".join(
+            [", ".join(group.get("group", [])) for group in row.get("failed", [])]
+        )
+        srcs = " ".join(row.get("sources", [])[:3])
+        for val_name in ("sat", "fail", "srcs"):
+            val = locals()[val_name]
+            if truncate and len(val) > truncate:
+                locals()[val_name] = val[:truncate] + "…"
+
+        table.add_row(
+            str(idx), score, f"{satisfied}/{total}", question, sat, fail, srcs
+        )
+
+    return table
+
+
+# NOTE:
 # CLI commands
 
 
@@ -227,36 +350,37 @@ def eval_run(
         3.0, help="Numeric tolerance percent for phrase checks"
     ),
     threads: int | None = typer.Option(None, help="Parallel threads for evaluation"),
-    table_rows: int = typer.Option(20, help="Rows to display in DSPy table"),
+    show_dspy_table: bool = typer.Option(
+        False,
+        "--show-dspy-table/--no-dspy-table",
+        help="Show DSPy's built-in table (else custom table)",
+    ),
+    view: str = typer.Option("table", help="table|wide|json"),
+    truncate: int = typer.Option(100, help="Truncate long fields (0 = no truncate)"),
     max_examples: int | None = typer.Option(None, help="Evaluate at most N examples"),
     save_json: Path | None = typer.Option(None, help="Write per-example results JSON"),
+    data_format: str = typer.Option("auto", help="auto|yaml|jsonl"),
 ) -> None:
     """
     Evaluate the RAG pipeline with a tolerant 'must-include phrases' metric.
 
-    DATA FORMAT (JSONL):
-      {"question": "When was Avril Lavigne born and where?",
-       "must": ["September 27, 1984", "Belleville", "Ontario", "Canada"]}
-
-      {"question": "How big is Jupiter?",
-       "must": [["equatorial diameter", "mean radius"], ["142,984", "69,911"]]}
-
-    For numeric items, near-equals within +/- tolerance_pct also counts as a match.
+    YAML format (recommended):
+    ---
+    - question: When Avril Lavigne was born, and where?
+      must: ["September 27, 1984", "Belleville", "Ontario", "Canada"]
+    - question: How big is Jupiter?
+      must:
+        - ["equatorial diameter", "mean radius"]
+        - ["142,984", "69,911"]
     """
     if not os.environ.get("OPENAI_API_KEY"):
         print(Panel.fit("[bold red]Set OPENAI_API_KEY in your environment.[/bold red]"))
         raise typer.Exit(code=3)
 
     # Load data
-    raw_lines = data_path.read_text(encoding="utf-8").splitlines()
-    items: list[EvalCase] = []
-    for line in raw_lines:
-        if not line.strip():
-            continue
-        obj = json.loads(line)
-        items.append(_coerce_eval_case(obj))
+    items = _load_cases(data_path, data_format=data_format)
     if max_examples is not None and max_examples > 0:
-        items = items[:max_examples]  # cut to max
+        items = items[:max_examples]  # truncate to max_examples
 
     # Build DSPy program
     db = get_client(uri=uri)
@@ -290,7 +414,7 @@ def eval_run(
         metric=metric,
         num_threads=threads,
         display_progress=True,
-        display_table=table_rows,
+        display_table=(len(devset) if show_dspy_table else 0),
     )
     result = evaluator(rag)
     avg = getattr(result, "score", None)
@@ -302,11 +426,22 @@ def eval_run(
         )
     )
 
-    # Optional dump of detailed per-example results collected by the metric
+    # Our structured output...
+    records: list[dict[str, Any]] = getattr(metric, "records", [])
+    if view == "json":
+        print(json.dumps(records, ensure_ascii=False, indent=2))
+    else:
+        table = (
+            _render_wide_table(records, truncate=truncate)
+            if view == "wide"
+            else _render_summary_table(records, truncate=truncate)
+        )
+        print(table)
+
+    # Optional details dump
     if save_json:
-        with metric.records_lock:  # type: ignore[attr-defined]
-            data = getattr(metric, "records", [])  # type: ignore[attr-defined]
+        with getattr(metric, "records_lock"):
             save_json.write_text(
-                json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+                json.dumps(records, ensure_ascii=False, indent=2), encoding="utf-8"
             )
             print(Panel.fit(f"[bold]Saved details to[/bold] {save_json}"))

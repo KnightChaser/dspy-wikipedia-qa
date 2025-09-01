@@ -1,0 +1,6 @@
+- question: When Avril Lavigne was born, and where?
+  must: ["September 27, 1984", "Belleville", "Ontario", "Canada"]
+- question: How big is Jupiter?
+  must:
+  - ["equatorial diameter", "mean radius"]
+  - ["142,984", "69,911"]
