@@ -11,6 +11,12 @@ It's easy to use: First, get the article from Wikipedia you'd like to search. Se
 Finally, you ask a question, and the related articles will be fetched from the database, and the LLM will generate the response for you based on the fetched articles.
 <img width="800" height="600" alt="image" src="https://github.com/user-attachments/assets/a3da5f37-b516-45c2-a67b-89c759d59711" />
 
+Additionally, you can proceed to evaluate the LLM responses.
+> [!NOTE]  
+> At least, please execute `index-title` command for `Large Language Model`, `Alan Turing`, `Jupiter`, `Avril Lavigne` and `Linux` before you run the evaluation because the current `eval.yaml`'s question set is asking about them.
+<img width="800" height="600" alt="image" src="https://github.com/user-attachments/assets/8b5c40e7-62bb-4e48-917d-e0647e03dd56" />
+
+
 ### Installation
 
 Create a Python virtual environment and install dependencies:
@@ -31,7 +37,7 @@ python main.py get "Python_(programming_language)" --lang en
 python main.py fetch "alan turing" --k 5 --pick 1
 
 # Index a page into Milvus Lite (./milvus.db) with section-aware chunking
-python main.py index_title "Alan Turing" --lang en
+python main.py index-title "Alan Turing" --lang en
 
 # Ask a question answered from your indexed chunks (requires OPENAI_API_KEY)
 python main.py ask "Which award did Alan Turing receive during his lifetime?" --k 6
