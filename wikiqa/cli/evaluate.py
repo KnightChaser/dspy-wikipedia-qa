@@ -5,21 +5,19 @@ import json
 import os
 import re
 import threading
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable, List, Sequence, Callable
+from typing import Any, Callable
 
 import typer
 from rich import print
 from rich.panel import Panel
-from rich.table import Table
 
 import dspy
 from wikiqa.index_milvus import (
     get_client,
     DEFAULT_COLLECTION,
     DEFAULT_URI,
-    DEFAULT_EMBED_DIM,
 )
 from wikiqa.retriever_milvus import MilvusRetriever
 from wikiqa.rag_dspy import SimpleRAG
