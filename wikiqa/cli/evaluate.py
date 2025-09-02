@@ -16,11 +16,9 @@ from rich.panel import Panel
 from rich.table import Table
 
 import dspy
-from wikiqa.index_milvus import (
-    get_client,
-    DEFAULT_COLLECTION_NAME,
-    DEFAULT_URI,
-)
+
+from wikiqa import config
+from wikiqa.index_milvus import get_client
 from wikiqa.retriever_milvus import MilvusRetriever
 from wikiqa.rag_dspy import SimpleRAG
 
@@ -355,8 +353,12 @@ def eval_run(
     data_path: Path = typer.Argument(
         ..., exists=True, readable=True, help="JSONL with {question, must}"
     ),
-    collection: str = typer.Option(DEFAULT_COLLECTION_NAME, help="Milvus collection"),
-    uri: str = typer.Option(DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"),
+    collection: str = typer.Option(
+        config.DEFAULT_COLLECTION_NAME, help="Milvus collection"
+    ),
+    uri: str = typer.Option(
+        config.DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"
+    ),
     k: int = typer.Option(6, "--k", help="Top-k passages"),
     model: str = typer.Option("gpt-3.5-turbo", help="OpenAI chat model"),
     min_score: float = typer.Option(0.60, help="Retriever gating: min similarity"),

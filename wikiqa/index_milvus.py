@@ -4,17 +4,11 @@ from typing import Iterable
 from pymilvus import MilvusClient
 from pymilvus import model as milvus_model
 
-from wikiqa.config import (
-    DEFAULT_COLLECTION_NAME,
-    DEFAULT_EMBED_MODEL_NAME,
-    DEFAULT_EMBED_DIM,
-    DEFAULT_URI,
-    DEFAULT_METRIC_NAME,
-)
+from wikiqa import config
 from wikiqa.datatypes import Chunk
 
 
-def get_client(uri: str = DEFAULT_URI) -> MilvusClient:
+def get_client(uri: str = config.DEFAULT_URI) -> MilvusClient:
     """
     Get a Milvus client connected to the given URI.
     """
@@ -22,7 +16,7 @@ def get_client(uri: str = DEFAULT_URI) -> MilvusClient:
 
 
 def get_openai_ef(
-    model_name: str = DEFAULT_EMBED_MODEL_NAME,
+    model_name: str = config.DEFAULT_EMBED_MODEL_NAME,
 ) -> milvus_model.dense.OpenAIEmbeddingFunction:
     """
     Build an OpenAI embedding function via pymilvus model library.
@@ -36,8 +30,8 @@ def get_openai_ef(
 def ensure_collection(
     client: MilvusClient,
     *,
-    collection_name: str = DEFAULT_COLLECTION_NAME,
-    dim: int = DEFAULT_EMBED_DIM,
+    collection_name: str = config.DEFAULT_COLLECTION_NAME,
+    dim: int = config.DEFAULT_EMBED_DIM,
     overwrite: bool = False,
 ) -> None:
     """
@@ -55,7 +49,7 @@ def ensure_collection(
         primary_field_name="id",
         vector_field_name="embedding",
         id_type="int",
-        metric_type=DEFAULT_METRIC_NAME,
+        metric_type=config.DEFAULT_METRIC_NAME,
         enable_dynamic=True,  # store extra fields in $meta
         max_length=65535,
     )

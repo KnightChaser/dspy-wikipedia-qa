@@ -8,11 +8,7 @@ from rich import print
 from rich.panel import Panel
 from rich.table import Table
 
-from wikiqa.config import (
-    DEFAULT_COLLECTION_NAME,
-    DEFAULT_URI,
-    DEFAULT_EMBED_DIM,
-)
+from wikiqa import config
 from wikiqa.index_milvus import (
     get_client,
 )
@@ -22,7 +18,9 @@ db_app = typer.Typer(add_completion=False, no_args_is_help=True)
 
 @db_app.command("collections")
 def db_collections(
-    uri: str = typer.Option(DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"),
+    uri: str = typer.Option(
+        config.DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"
+    ),
     json_out: bool = typer.Option(False, "--json", help="Emit JSON instead of table"),
 ) -> None:
     """
@@ -48,8 +46,12 @@ def db_collections(
 
 @db_app.command("peek")
 def db_peek(
-    collection: str = typer.Option(DEFAULT_COLLECTION_NAME, help="Collection name"),
-    uri: str = typer.Option(DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"),
+    collection: str = typer.Option(
+        config.DEFAULT_COLLECTION_NAME, help="Collection name"
+    ),
+    uri: str = typer.Option(
+        config.DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"
+    ),
     limit: int = typer.Option(5, help="Number of rows to display"),
     fields: str = typer.Option(
         "id,page_title,section_path,lang,url,token_estimate,text",
@@ -127,8 +129,12 @@ def db_peek(
 
 @db_app.command("stats")
 def db_stats(
-    collection: str = typer.Option(DEFAULT_COLLECTION_NAME, help="Collection name"),
-    uri: str = typer.Option(DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"),
+    collection: str = typer.Option(
+        config.DEFAULT_COLLECTION_NAME, help="Collection name"
+    ),
+    uri: str = typer.Option(
+        config.DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"
+    ),
     json_out: bool = typer.Option(False, "--json", help="Emit JSON instead of table"),
 ) -> None:
     """
@@ -212,9 +218,9 @@ def db_stats(
             )
         except Exception:
             dim = None
-        table.add_row("Dimension", str(dim or f"(likely {DEFAULT_EMBED_DIM})"))
+        table.add_row("Dimension", str(dim or f"(likely {config.DEFAULT_EMBED_DIM})"))
     else:
-        table.add_row("Dimension", f"(likely {DEFAULT_EMBED_DIM})")
+        table.add_row("Dimension", f"(likely {config.DEFAULT_EMBED_DIM})")
 
     # sample fields
     if info["sample_fields"]:
@@ -227,8 +233,12 @@ def db_stats(
 
 @db_app.command("titles")
 def db_titles(
-    collection: str = typer.Option(DEFAULT_COLLECTION_NAME, help="Collection name"),
-    uri: str = typer.Option(DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"),
+    collection: str = typer.Option(
+        config.DEFAULT_COLLECTION_NAME, help="Collection name"
+    ),
+    uri: str = typer.Option(
+        config.DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"
+    ),
     where: Optional[str] = typer.Option(
         None,
         help='Optional scalar filter, e.g., \'lang == "en" and page_title like "Alan%"\'.',

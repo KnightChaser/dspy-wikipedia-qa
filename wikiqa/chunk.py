@@ -5,7 +5,7 @@ import re
 import hashlib
 import wikipediaapi
 
-from wikiqa.config import DEFAULT_CHUNK_MAX_TOKENS, DEFAULT_CHUNK_OVERLAP
+from wikiqa import config
 from wikiqa.datatypes import Chunk
 
 
@@ -66,8 +66,8 @@ def _walk_sections(page: wikipediaapi.WikipediaPage) -> Iterable[Tuple[str, str]
 
 def _split_with_overlap(
     text: str,
-    max_tokens: int = DEFAULT_CHUNK_MAX_TOKENS,
-    overlap_tokens: int = DEFAULT_CHUNK_OVERLAP,
+    max_tokens: int = config.DEFAULT_CHUNK_MAX_TOKENS,
+    overlap_tokens: int = config.DEFAULT_CHUNK_OVERLAP,
 ) -> list[str]:
     """
     Split by paragraphs then fall back to sentence-ish units, keeping overlap.
@@ -146,8 +146,8 @@ def make_chunks_from_page(
     *,
     lang: str,
     base_url: str | None = None,
-    max_tokens: int = DEFAULT_CHUNK_MAX_TOKENS,
-    overlap_tokens: int = DEFAULT_CHUNK_OVERLAP,
+    max_tokens: int = config.DEFAULT_CHUNK_MAX_TOKENS,
+    overlap_tokens: int = config.DEFAULT_CHUNK_OVERLAP,
 ) -> list[Chunk]:
     """
     Produce section-aware chunks for a Wikipedia page.

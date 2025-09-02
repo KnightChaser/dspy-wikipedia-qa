@@ -11,6 +11,7 @@ from rich import print
 from rich.panel import Panel
 from rich.table import Table
 
+from wikiqa import config
 from wikiqa.datatypes import WikiPageData
 from wikiqa.wiki_client import WikiClient, DEFAULT_UA
 from wikiqa.search import search_pages
@@ -20,18 +21,6 @@ from wikiqa.index_milvus import (
     get_openai_ef,
     ensure_collection,
     upsert_chunks,
-)
-from wikiqa.config import (
-    DEFAULT_URI,
-    DEFAULT_COLLECTION_NAME,
-    DEFAULT_CHUNK_MAX_TOKENS,
-    DEFAULT_CHUNK_OVERLAP,
-    DEFAULT_EMBED_DIM,
-    DEFAULT_EMBED_MODEL_NAME,
-    DEFAULT_MIN_SCORE,
-    DEFAULT_MIN_HITS,
-    DEFAULT_CHAT_MODEL_NAME,
-    DEFAULT_TOP_K,
 )
 from wikiqa.rag_dspy import SimpleRAG
 from wikiqa.retriever_milvus import (
@@ -153,20 +142,22 @@ def index_title(
     title: str = typer.Argument(..., help="Exact Wikipedia page title to index"),
     lang: str = typer.Option("en", help="Language code, e.g., en, ko, es"),
     collection: str = typer.Option(
-        DEFAULT_COLLECTION_NAME, help="Milvus collection name"
+        config.DEFAULT_COLLECTION_NAME, help="Milvus collection name"
     ),
-    uri: str = typer.Option(DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"),
+    uri: str = typer.Option(
+        config.DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"
+    ),
     html: bool = typer.Option(
         False, help="Use HTML for text extraction (default WIKI)"
     ),
     max_tokens: int = typer.Option(
-        DEFAULT_CHUNK_MAX_TOKENS, help="Chunk target size (approx tokens)"
+        config.DEFAULT_CHUNK_MAX_TOKENS, help="Chunk target size (approx tokens)"
     ),
     overlap: int = typer.Option(
-        DEFAULT_CHUNK_OVERLAP, help="Overlap between chunks (approx tokens)"
+        config.DEFAULT_CHUNK_OVERLAP, help="Overlap between chunks (approx tokens)"
     ),
     embed_model: str = typer.Option(
-        DEFAULT_EMBED_MODEL_NAME, help="OpenAI embedding model"
+        config.DEFAULT_EMBED_MODEL_NAME, help="OpenAI embedding model"
     ),
 ) -> None:
     """
@@ -207,7 +198,7 @@ def index_title(
 
     ef = get_openai_ef(model_name=embed_model)
     db = get_client(uri=uri)
-    dim = getattr(ef, "dim", DEFAULT_EMBED_DIM)
+    dim = getattr(ef, "dim", config.DEFAULT_EMBED_DIM)
     ensure_collection(db, collection_name=collection, dim=int(dim))
     insert = upsert_chunks(
         db,
@@ -228,17 +219,21 @@ def index_title(
 def ask(
     question: str = typer.Argument(...),
     collection: str = typer.Option(
-        DEFAULT_COLLECTION_NAME, help="Milvus collection name"
+        config.DEFAULT_COLLECTION_NAME, help="Milvus collection name"
     ),
-    uri: str = typer.Option(DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"),
-    k: int = typer.Option(DEFAULT_TOP_K, "--k", help="Number of retrieved chunks"),
-    model: str = typer.Option(DEFAULT_CHAT_MODEL_NAME, help="OpenAI chat model"),
+    uri: str = typer.Option(
+        config.DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"
+    ),
+    k: int = typer.Option(
+        config.DEFAULT_TOP_K, "--k", help="Number of retrieved chunks"
+    ),
+    model: str = typer.Option(config.DEFAULT_CHAT_MODEL_NAME, help="OpenAI chat model"),
     show_sources: bool = typer.Option(True, "--sources/--no-sources"),
     min_score: float = typer.Option(
-        DEFAULT_MIN_SCORE, help="Minimum similarity score for hits"
+        config.DEFAULT_MIN_SCORE, help="Minimum similarity score for hits"
     ),
     min_hits: int = typer.Option(
-        DEFAULT_MIN_HITS, help="Minimum number of hits to consider valid"
+        config.DEFAULT_MIN_HITS, help="Minimum number of hits to consider valid"
     ),
 ) -> None:
     if not os.environ.get("OPENAI_API_KEY"):

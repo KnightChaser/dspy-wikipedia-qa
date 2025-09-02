@@ -6,12 +6,7 @@ from typing import Any, Iterable, Sequence
 import numpy as np
 from pymilvus import MilvusClient
 
-from wikiqa.config import (
-    DEFAULT_MIN_SCORE,
-    DEFAULT_MIN_HITS,
-    DEFAULT_COLLECTION_NAME,
-    DEFAULT_TOP_K,
-)
+from wikiqa import config
 from wikiqa.index_milvus import get_openai_ef
 
 
@@ -36,7 +31,7 @@ class MilvusRetriever:
     def __init__(
         self,
         client: MilvusClient,
-        collection: str = DEFAULT_COLLECTION_NAME,
+        collection: str = config.DEFAULT_COLLECTION_NAME,
         *,
         output_fields: Sequence[str] = (
             "text",
@@ -45,8 +40,8 @@ class MilvusRetriever:
             "section_path",
             "lang",
         ),
-        min_score: float = DEFAULT_MIN_SCORE,
-        min_hits: int = DEFAULT_MIN_HITS,
+        min_score: float = config.DEFAULT_MIN_SCORE,
+        min_hits: int = config.DEFAULT_MIN_HITS,
     ) -> None:
         self.client = client
         self.collection = collection
@@ -62,7 +57,7 @@ class MilvusRetriever:
         vec = self.ef.encode_queries([query])[0]
         return vec.tolist() if isinstance(vec, np.ndarray) else vec
 
-    def __call__(self, query: str, k: int = DEFAULT_TOP_K) -> list[Passage]:
+    def __call__(self, query: str, k: int = config.DEFAULT_TOP_K) -> list[Passage]:
         """
         Retrieve top-k passages for a given query.
         """
