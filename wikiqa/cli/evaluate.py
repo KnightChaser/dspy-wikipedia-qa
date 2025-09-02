@@ -8,7 +8,7 @@ import yaml
 import threading
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any, Callable, Union, TypedDict, TypeAlias
 
 import typer
 from rich import print
@@ -35,6 +35,32 @@ _WS_RE = re.compile(r"\s+", flags=re.UNICODE)
 _NUM_RE = re.compile(
     r"(?<![\w.])-?\d{1,3}(?:[,\s]\d{3})*(?:\.\d+)?|(?<![\w.])\d+(?:\.\d+)?"
 )
+
+MustConstraint: TypeAlias = Union[str, list[str]]
+
+
+@dataclass(frozen=True, slots=True)
+class EvalCase:
+    """
+    An evaluation case with a question and 'must include' constraints.
+    """
+
+    question: str
+    must: list[MustConstraint]
+
+
+class EvaluationRecord(TypedDict):
+    """
+    A record of the evaluation result for one example.
+    """
+
+    question: str
+    answer: str
+    score: float
+    satisfied: list[dict[str, Any]]
+    failed: list[dict[str, Any]]
+    must: list[MustConstraint]
+    sources: list[str]
 
 
 def _normalize(s: str) -> str:
@@ -105,12 +131,6 @@ def _approx_numeric_present(
 # Metric: must-include with any-of groups + numeric tolerance
 
 
-@dataclass(frozen=True, slots=True)
-class EvalCase:
-    question: str
-    must: list[Any]  # list[str | list[str]]
-
-
 def _coerce_eval_case(obj: dict[str, Any]) -> EvalCase:
     """
     Coerce a dict to an EvalCase, validating the structure.
@@ -122,7 +142,7 @@ def _coerce_eval_case(obj: dict[str, Any]) -> EvalCase:
 
     # Normalize structure but don't lowercase yet
     # (To match case-insensitivity parts later)
-    groups: list[Any] = []
+    groups: list[MustConstraint] = []
     for group in must:
         if isinstance(group, str):
             groups.append(group)
@@ -155,12 +175,12 @@ def must_include_metric_factory(tolerance_percentage: float) -> Callable:
     """
     # Shared list to collect per-example details
     records_lock: threading.Lock = threading.Lock()
-    records: list[dict[str, Any]] = []
+    records: list[EvaluationRecord] = []
 
     def metric(example: dspy.Example, prediction: dspy.Prediction) -> float:
         answer = str(prediction.answer).strip() or ""
         answer_norm = _normalize(answer)
-        groups: list[Any] = example.must if hasattr(example, "must") else []
+        groups: list[MustConstraint] = example.must if hasattr(example, "must") else []
         total = len(groups) if groups else 0
         satisfied = 0  # of groups satisfied
         failed_details: list[dict[str, Any]] = []
@@ -187,17 +207,16 @@ def must_include_metric_factory(tolerance_percentage: float) -> Callable:
 
         # Store a compact record for optional JSON dump
         with records_lock:
-            records.append(
-                {
-                    "question": example.question,
-                    "answer": answer,
-                    "score": score,
-                    "satisfied": satisfied_details,
-                    "failed": failed_details,
-                    "must": groups,
-                    "sources": getattr(prediction, "sources", []),
-                }
-            )
+            record: EvaluationRecord = {
+                "question": example.question,
+                "answer": answer,
+                "score": score,
+                "satisfied": satisfied_details,
+                "failed": failed_details,
+                "must": groups,
+                "sources": getattr(prediction, "sources", []),
+            }  # The type checker will validate this structure...
+            records.append(record)
         return score
 
     # expose the captured records so the caller can persist them!
@@ -258,7 +277,7 @@ def _load_cases(path: Path, data_format: str) -> list[EvalCase]:
 
 # NOTE:
 # Pretty tables
-def _render_summary_table(records: list[dict[str, Any]], truncate: int = 80) -> Table:
+def _render_summary_table(records: list[EvaluationRecord], truncate: int = 80) -> Table:
     """
     Render a rich Table summarizing the evaluation records.
     """
@@ -289,7 +308,7 @@ def _render_summary_table(records: list[dict[str, Any]], truncate: int = 80) -> 
     return table
 
 
-def _render_wide_table(records: list[dict[str, Any]], truncate: int = 100) -> Table:
+def _render_wide_table(records: list[EvaluationRecord], truncate: int = 100) -> Table:
     """
     Render a rich Table with detailed evaluation records.
     """
@@ -425,7 +444,7 @@ def eval_run(
     )
 
     # Our structured output...
-    records: list[dict[str, Any]] = getattr(metric, "records", [])
+    records: list[EvaluationRecord] = getattr(metric, "records", [])
     if view == "json":
         print(json.dumps(records, ensure_ascii=False, indent=2))
     else:
