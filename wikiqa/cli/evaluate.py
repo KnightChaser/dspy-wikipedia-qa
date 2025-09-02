@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 import yaml
 import threading
@@ -18,9 +17,8 @@ from rich.table import Table
 import dspy
 
 from wikiqa import config
-from wikiqa.index_milvus import get_client
-from wikiqa.retriever_milvus import MilvusRetriever
 from wikiqa.rag_dspy import SimpleRAG, build_rag_pipeline
+from wikiqa.utils import ensure_openai_api_key
 
 eval_app = typer.Typer(
     add_completion=False, no_args_is_help=True, help="Evaluate the RAG model."
@@ -392,9 +390,7 @@ def eval_run(
         - ["equatorial diameter", "mean radius"]
         - ["142,984", "69,911"]
     """
-    if not os.environ.get("OPENAI_API_KEY"):
-        print(Panel.fit("[bold red]Set OPENAI_API_KEY in your environment.[/bold red]"))
-        raise typer.Exit(code=3)
+    ensure_openai_api_key()
 
     # Load data
     items = _load_cases(data_path, data_format=data_format)

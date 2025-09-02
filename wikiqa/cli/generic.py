@@ -2,10 +2,8 @@
 from __future__ import annotations
 
 import json
-import os
 import typer
 import wikipediaapi
-import dspy
 from dataclasses import asdict
 from rich import print
 from rich.panel import Panel
@@ -23,9 +21,7 @@ from wikiqa.index_milvus import (
     upsert_chunks,
 )
 from wikiqa.rag_dspy import SimpleRAG, build_rag_pipeline
-from wikiqa.retriever_milvus import (
-    MilvusRetriever,
-)  # A local retriever
+from wikiqa.utils import ensure_openai_api_key
 
 app = typer.Typer(add_completion=False, no_args_is_help=True)
 
@@ -236,9 +232,7 @@ def ask(
         config.DEFAULT_MIN_HITS, help="Minimum number of hits to consider valid"
     ),
 ) -> None:
-    if not os.environ.get("OPENAI_API_KEY"):
-        print(Panel.fit("[bold red]Set OPENAI_API_KEY in your environment.[/bold red]"))
-        raise typer.Exit(code=3)
+    ensure_openai_api_key()
 
     rag: SimpleRAG = build_rag_pipeline(
         uri=uri,
