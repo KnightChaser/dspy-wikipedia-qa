@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from wikiqa import config
+from wikiqa.index_milvus import get_client
 from wikiqa.retriever_milvus import MilvusRetriever, Passage
 
 
@@ -69,3 +70,37 @@ class SimpleRAG(dspy.Module):
         ctx = "\n\n".join(contexts)
         pred = self.generate(context=ctx, question=question)
         return dspy.Prediction(answer=pred.answer, sources=srcs)
+
+
+def build_rag_pipeline(
+    uri: str = config.DEFAULT_URI,
+    collection_name: str = config.DEFAULT_COLLECTION_NAME,
+    model_name: str = config.DEFAULT_EMBED_MODEL_NAME,
+    k: int = config.DEFAULT_TOP_K,
+    min_score: float = config.DEFAULT_MIN_SCORE,
+    min_hits: int = config.DEFAULT_MIN_HITS,
+    # NOTE: gpt-5-mini requires temperature=1.0, max_tokens>=20000.
+    # This number may be adjusted by the caller.
+    temperature: float = 1.0,
+    max_tokens: int = 20000,
+    # Allow passing a custom retriever (e.g., for testing)
+    retriever: MilvusRetriever | None = None,
+) -> SimpleRAG:
+    """
+    Builds and configures the complete (fully-configured)
+    SimpleRAG pipeline
+    """
+    db = get_client(uri=uri)
+    if retriever is None:
+        retriever = MilvusRetriever(
+            client=db,
+            collection=collection_name,
+            min_score=min_score,
+            min_hits=min_hits,
+            output_fields=("text", "url", "page_title", "section_path", "lang"),
+        )
+
+    lm = dspy.LM(model=model_name, temperature=temperature, max_tokens=max_tokens)
+    dspy.settings.configure(lm=lm)
+
+    return SimpleRAG(retriever=retriever, top_k=k)

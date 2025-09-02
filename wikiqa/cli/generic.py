@@ -22,7 +22,7 @@ from wikiqa.index_milvus import (
     ensure_collection,
     upsert_chunks,
 )
-from wikiqa.rag_dspy import SimpleRAG
+from wikiqa.rag_dspy import SimpleRAG, build_rag_pipeline
 from wikiqa.retriever_milvus import (
     MilvusRetriever,
 )  # A local retriever
@@ -240,16 +240,14 @@ def ask(
         print(Panel.fit("[bold red]Set OPENAI_API_KEY in your environment.[/bold red]"))
         raise typer.Exit(code=3)
 
-    retriever = MilvusRetriever(
-        client=get_client(uri=uri),
-        collection=collection,
+    rag: SimpleRAG = build_rag_pipeline(
+        uri=uri,
+        collection_name=collection,
+        k=k,
+        model_name=model,
         min_score=min_score,
         min_hits=min_hits,
     )
-    lm = dspy.LM(model=model, temperature=1.0, max_tokens=20000)
-    dspy.settings.configure(lm=lm)
-
-    rag = SimpleRAG(retriever, top_k=k)
     pred = rag(question)
 
     print(Panel.fit(f"[bold]Answer[/bold]\n{pred.answer}"))

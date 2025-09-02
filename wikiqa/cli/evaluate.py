@@ -20,7 +20,7 @@ import dspy
 from wikiqa import config
 from wikiqa.index_milvus import get_client
 from wikiqa.retriever_milvus import MilvusRetriever
-from wikiqa.rag_dspy import SimpleRAG
+from wikiqa.rag_dspy import SimpleRAG, build_rag_pipeline
 
 eval_app = typer.Typer(
     add_completion=False, no_args_is_help=True, help="Evaluate the RAG model."
@@ -402,19 +402,16 @@ def eval_run(
         items = items[:max_examples]  # truncate to max_examples
 
     # Build DSPy program
-    db = get_client(uri=uri)
-    retr = MilvusRetriever(
-        client=db,
-        collection=collection,
+    rag: SimpleRAG = build_rag_pipeline(
+        uri=uri,
+        collection_name=collection,
+        k=k,
+        model_name=model,
         min_score=min_score,
         min_hits=min_hits,
-        output_fields=("text", "url", "page_title", "section_path", "lang"),
+        temperature=1.0,
+        max_tokens=4096,
     )
-    lm = dspy.LM(model=model, temperature=1.0, max_tokens=4096)
-
-    dspy.settings.configure(lm=lm)
-
-    rag = SimpleRAG(retriever=retr, top_k=k)
 
     # Build devset for DSPy
     devset = [
