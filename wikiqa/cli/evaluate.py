@@ -18,7 +18,7 @@ from rich.table import Table
 import dspy
 from wikiqa.index_milvus import (
     get_client,
-    DEFAULT_COLLECTION,
+    DEFAULT_COLLECTION_NAME,
     DEFAULT_URI,
 )
 from wikiqa.retriever_milvus import MilvusRetriever
@@ -73,7 +73,7 @@ def _extract_numbers(s: str) -> list[float]:
 
 
 def _approx_numeric_present(
-    expected: str, answer: str, tolerance_pcrcentage: float
+    expected: str, answer: str, tolerance_percentage: float
 ) -> bool:
     """
     If expected contains any number(s), accept if the answer
@@ -87,7 +87,7 @@ def _approx_numeric_present(
     if not answer_nums:
         return False
 
-    tolerance = max(0.0, tolerance_pcrcentage / 100.0)
+    tolerance = max(0.0, tolerance_percentage / 100.0)
 
     for en in expected_nums:
         for an in answer_nums:
@@ -157,9 +157,7 @@ def must_include_metric_factory(tolerance_percentage: float) -> Callable:
     records_lock: threading.Lock = threading.Lock()
     records: list[dict[str, Any]] = []
 
-    def metric(
-        example: dspy.Example, prediction: dspy.Prediction, trace: Any = None
-    ) -> float:
+    def metric(example: dspy.Example, prediction: dspy.Prediction) -> float:
         answer = str(prediction.answer).strip() or ""
         answer_norm = _normalize(answer)
         groups: list[Any] = example.must if hasattr(example, "must") else []
@@ -338,7 +336,7 @@ def eval_run(
     data_path: Path = typer.Argument(
         ..., exists=True, readable=True, help="JSONL with {question, must}"
     ),
-    collection: str = typer.Option(DEFAULT_COLLECTION, help="Milvus collection"),
+    collection: str = typer.Option(DEFAULT_COLLECTION_NAME, help="Milvus collection"),
     uri: str = typer.Option(DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"),
     k: int = typer.Option(6, "--k", help="Top-k passages"),
     model: str = typer.Option("gpt-3.5-turbo", help="OpenAI chat model"),

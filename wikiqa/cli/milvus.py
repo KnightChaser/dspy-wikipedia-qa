@@ -8,11 +8,13 @@ from rich import print
 from rich.panel import Panel
 from rich.table import Table
 
-from wikiqa.index_milvus import (
-    get_client,
-    DEFAULT_COLLECTION,
+from wikiqa.config import (
+    DEFAULT_COLLECTION_NAME,
     DEFAULT_URI,
     DEFAULT_EMBED_DIM,
+)
+from wikiqa.index_milvus import (
+    get_client,
 )
 
 db_app = typer.Typer(add_completion=False, no_args_is_help=True)
@@ -46,7 +48,7 @@ def db_collections(
 
 @db_app.command("peek")
 def db_peek(
-    collection: str = typer.Option(DEFAULT_COLLECTION, help="Collection name"),
+    collection: str = typer.Option(DEFAULT_COLLECTION_NAME, help="Collection name"),
     uri: str = typer.Option(DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"),
     limit: int = typer.Option(5, help="Number of rows to display"),
     fields: str = typer.Option(
@@ -125,7 +127,7 @@ def db_peek(
 
 @db_app.command("stats")
 def db_stats(
-    collection: str = typer.Option(DEFAULT_COLLECTION, help="Collection name"),
+    collection: str = typer.Option(DEFAULT_COLLECTION_NAME, help="Collection name"),
     uri: str = typer.Option(DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"),
     json_out: bool = typer.Option(False, "--json", help="Emit JSON instead of table"),
 ) -> None:
@@ -225,7 +227,7 @@ def db_stats(
 
 @db_app.command("titles")
 def db_titles(
-    collection: str = typer.Option(DEFAULT_COLLECTION, help="Collection name"),
+    collection: str = typer.Option(DEFAULT_COLLECTION_NAME, help="Collection name"),
     uri: str = typer.Option(DEFAULT_URI, help="Milvus URI (file path = Milvus Lite)"),
     where: Optional[str] = typer.Option(
         None,

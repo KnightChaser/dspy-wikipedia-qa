@@ -4,14 +4,14 @@ from typing import Iterable
 from pymilvus import MilvusClient
 from pymilvus import model as milvus_model
 
+from wikiqa.config import (
+    DEFAULT_COLLECTION_NAME,
+    DEFAULT_EMBED_MODEL_NAME,
+    DEFAULT_EMBED_DIM,
+    DEFAULT_URI,
+    DEFAULT_METRIC_NAME,
+)
 from wikiqa.datatypes import Chunk
-
-# NOTE: Defaults... local Milvus Lite DB; 1536 dims for text-embedding-3-small
-# You can change DIM if you switch embedding model.
-DEFAULT_URI = "./milvus.db"  # Milvus Lite (single file)
-DEFAULT_COLLECTION = "wikiqa_chunks"
-DEFAULT_EMBED_DIM = 1536  # 1536 dims for text-embedding-3-small
-DEFAULT_METRIC = "COSINE"  # cosine similarity
 
 
 def get_client(uri: str = DEFAULT_URI) -> MilvusClient:
@@ -22,7 +22,7 @@ def get_client(uri: str = DEFAULT_URI) -> MilvusClient:
 
 
 def get_openai_ef(
-    model_name: str = "text-embedding-3-small",
+    model_name: str = DEFAULT_EMBED_MODEL_NAME,
 ) -> milvus_model.dense.OpenAIEmbeddingFunction:
     """
     Build an OpenAI embedding function via pymilvus model library.
@@ -36,7 +36,7 @@ def get_openai_ef(
 def ensure_collection(
     client: MilvusClient,
     *,
-    collection_name: str = DEFAULT_COLLECTION,
+    collection_name: str = DEFAULT_COLLECTION_NAME,
     dim: int = DEFAULT_EMBED_DIM,
     overwrite: bool = False,
 ) -> None:
@@ -55,7 +55,7 @@ def ensure_collection(
         primary_field_name="id",
         vector_field_name="embedding",
         id_type="int",
-        metric_type=DEFAULT_METRIC,
+        metric_type=DEFAULT_METRIC_NAME,
         enable_dynamic=True,  # store extra fields in $meta
         max_length=65535,
     )

@@ -4,6 +4,13 @@ from __future__ import annotations
 import dspy
 from dataclasses import dataclass
 from typing import Sequence
+
+from wikiqa.config import (
+    DEFAULT_EMBED_MODEL_NAME,
+    DEFAULT_TOP_K,
+    DEFAULT_URI,
+    DEFAULT_COLLECTION_NAME,
+)
 from wikiqa.retriever_milvus import MilvusRetriever, Passage
 
 
@@ -13,10 +20,10 @@ class RAGConfig:
     Configuration for the RAG system using dspy and Milvus.
     """
 
-    collection: str
-    uri: str
-    top_k: int = 6
-    openai_model: str = "gpt-5-mini"
+    collection: str = DEFAULT_COLLECTION_NAME
+    uri: str = DEFAULT_URI
+    top_k: int = DEFAULT_TOP_K
+    openai_model: str = DEFAULT_EMBED_MODEL_NAME
 
 
 class GenerateAnswer(dspy.Signature):
@@ -34,7 +41,7 @@ class SimpleRAG(dspy.Module):
     A simple Retrieval-Augmented Generation (RAG) system using dspy and Milvus.
     """
 
-    def __init__(self, retriever: MilvusRetriever, *, top_k: int = 6):
+    def __init__(self, retriever: MilvusRetriever, *, top_k: int = DEFAULT_TOP_K):
         super().__init__()
         self.retriever = retriever
         self.top_k = top_k
